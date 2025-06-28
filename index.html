@@ -118,6 +118,12 @@
         <label for="child-id">Select Child:</label>
         <select id="child-id" name="child_id" required>
           <option value="">--Choose a Child--</option>
+           <option value="add-new">➕ Add New Child</option>
+
+            <div id="new-child-container" style="display:none; margin-top:10px;">
+              <label for="newChildName">Enter New Child's Name:</label>
+              <input type="text" id="newChildName" name="newChildName" placeholder="Child's name" />
+            </div>
         </select>
 
         <label for="child-age">Child's Current Age (in years):</label>
@@ -279,8 +285,14 @@
       
     }
       window.addEventListener('DOMContentLoaded', () => {
-    loadChildren();
-    loadLessonSuggestions().then(setupCustomAutocomplete);
+        loadChildren();
+        loadLessonSuggestions().then(setupCustomAutocomplete);
+        const childDropdown = document.getElementById("child-id");
+        childDropdown.addEventListener("change", function () {
+          const newChildContainer = document.getElementById("new-child-container");
+          newChildContainer.style.display = this.value === "add-new" ? "block" : "none";
+    });
+
   });   
 
 
@@ -288,32 +300,76 @@
 
 
   <script>
-  document.getElementById('lesson-form').addEventListener('submit', async function (e) {
-    e.preventDefault();
+      document.getElementById('lesson-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
 
-    const childId = document.getElementById('child-id').value.trim();
-    const category = document.getElementById('category').value.trim();
-    const age = document.getElementById('child-age').value.trim();
+      let childId = document.getElementById('child-id').value.trim();
+      const newChildName = document.getElementById('newChildName').value.trim();
 
-    const masteredInput = document.getElementById('mastered-lessons').value.trim();
-    const mastered = masteredInput
-      .split(',')
-      .map(l => l.trim())
-      .filter(l => l.length > 0); // ✅ turns string into list
+      if (childId === "add-new") {
+        if (!newChildName) {
+          alert("Please enter a name for the new child.");
+          return;
+        }
 
-    if (!childId || !category || !age ) {
-      alert("Please fill in child, age and category fields.");
-      return;
-    }
+        try {
+          const res = await fetch('https://affaaf.pythonanywhere.com/children', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: newChildName })
+          });
 
-    const payload = {
-      child_id: childId,
-      category: category,
-      age: age,
-      mastered: mastered
-    };
+          const result = await res.json();
 
-    console.log("Submitting payload:", payload);
+          if (res.ok && result.child) {
+            // Add the new child to the dropdown
+            const dropdown = document.getElementById("child-id");
+            const option = document.createElement("option");
+            option.value = result.child.id;
+            option.textContent = result.child.name;
+            dropdown.appendChild(option);
+
+            // Update the childId and select it
+            dropdown.value = result.child.id;
+            childId = result.child.id;
+
+            document.getElementById("new-child-container").style.display = "none";
+            alert("New child added and selected!");
+          } else {
+            alert("Child added, but response format was unexpected.");
+            return;
+          }
+
+        } catch (error) {
+          console.error("Error adding new child:", error);
+          alert("Failed to add new child. Try again.");
+          return;
+        }
+      }
+
+      // Continue with the rest of the logic using updated childId
+      const category = document.getElementById('category').value.trim();
+      const age = document.getElementById('child-age').value.trim();
+      const masteredInput = document.getElementById('mastered-lessons').value.trim();
+      const mastered = masteredInput.split(',').map(l => l.trim()).filter(l => l.length > 0);
+
+      if (!childId || !category || !age) {
+        alert("Please fill in child, age and category fields.");
+        return;
+      }
+
+      const payload = {
+        child_id: childId,
+        category: category,
+        age: age,
+        mastered: mastered
+      };
+
+      console.log("Submitting payload:", payload);
+
+      // ... rest of your fetch POST to /recommend
+    });
+
 
     try {
       const res = await fetch('https://affaaf.pythonanywhere.com/recommend', {
