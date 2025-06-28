@@ -306,6 +306,7 @@
 
       let childId = document.getElementById('child-id').value.trim();
       const newChildName = document.getElementById('newChildName').value.trim();
+      const newChildAge = document.getElementById('child_age').value.trim();
 
       if (childId === "add-new") {
         if (!newChildName) {
@@ -317,7 +318,7 @@
           const res = await fetch('https://affaaf.pythonanywhere.com/children', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: newChildName })
+            body: JSON.stringify({ name: newChildName, childAge : newChildAge})
           });
 
           const result = await res.json();
