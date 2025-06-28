@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Montessori Lessons</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #fef6e4;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+
+    .main-container {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      padding: 40px;
+      flex-wrap: wrap;
+    }
+
+    .form-container, .flowchart-container {
+      background-color: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+      flex: 1 1 400px;
+      max-width: 500px;
+    }
+
+    h1, h2 {
+      text-align: center;
+      color: #8eaccd;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    input, select, textarea, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+
+    button {
+      background-color: #ffd6d6;
+      color: #444;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      border: none;
+    }
+
+    button:hover {
+      background-color: #ffb6b6;
+    }
+
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #e6f7e6;
+      border: 1px solid #a6dba6;
+      border-radius: 10px;
+    }
+
+    img {
+      width: 100%;
+      max-width: 100%;
+      border-radius: 12px;
+    }
+      
+    .autocomplete-suggestions {
+      position: absolute;
+      background: #ffffff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      z-index: 1000;
+      max-height: 200px;
+      overflow-y: auto;
+      width: 100%;
+    }
+
+    .autocomplete-suggestions div {
+      padding: 8px;
+      cursor: pointer;
+    }
+
+    .autocomplete-suggestions div:hover {
+      background-color: #f0f0f0;
+    }
+
+  </style>
+</head>
+<body>
+
+  <h1>Montessori Lessons Recommender</h1>
+  <div id="intro" style="margin: 20px; padding: 10px; background-color: #e6f7e6;">
+    <p>
+      Welcome to the Montessori Lesson Recommender! Select a child from the list, enter child's current age, choose an area of learning,
+      and enter any lessons they have already mastered. The system will suggest the next appropriate lesson 
+      based on their age and learning history.
+    </p>
+  </div>
+
+  <div class="main-container">
+    <!-- Left: Form -->
+    <div class="form-container">
+      <form id="lesson-form">
+        <label for="child-id">Select Child:</label>
+        <select id="child-id" name="child_id" required>
+          <option value="">--Choose a Child--</option>
+        </select>
+
+        <label for="child-age">Child's Current Age (in years):</label>
+        <input type="number" id="child-age" name="child_age" min="2" max="6" step="0.1" required>
+
+        <label for="mastered-lessons">Mastered Lessons (comma-separated):</label>
+        <input type="text" id="mastered-lessons" name="mastered_lessons" autocomplete="off" />
+
+        <!-- <datalist id="lesson-suggestions"></datalist> -->
+
+
+        <label for="category">Select Lesson Category:</label>
+        <select id="category" name="category" required>
+          <option value="">--Choose a Category--</option>
+          <option value="Mathematics">Mathematics</option>
+          <option value="Language">Language</option>
+          <option value="Sensorial">Sensorial</option>
+          <option value="Cultural">Cultural</option>
+          <option value="Practical Life">Practical Life</option>
+        </select>
+
+        <button type="submit">Submit</button>
+        
+      </form>
+
+      <div id="result" class="result" style="display: none;"></div>
+      <div id="lesson-breakdown" class="result" style="display: none;"></div>
+        <div id="lesson-status" style="margin-top: 20px; padding: 20px;">
+          <div id="mastered-list">
+            <h3>Mastered Lessons:</h3>
+            <ul id="mastered-ul"></ul>
+          </div>
+
+          <div id="unmastered-list" style="margin-top: 10px;">
+            <h3>Unmastered Lessons:</h3>
+            <ul id="unmastered-ul"></ul>
+          </div>
+        </div>
+    </div>
+
+    <!-- Right: Flowchart -->
+    <div class="flowchart-container">
+      <h2>Montessori Lessons Flowchart</h2>
+      <img src="static/MontessoriLessons.png" alt="Montessori Flowchart" />
+    </div>
+  </div>
+
+  <script>
+      async function loadChildren() {
+        try {
+          const response = await fetch('http://localhost:5050/children');
+          const data = await response.json();
+          const dropdown = document.getElementById('child-id');
+
+          data.children.forEach(child => {
+            const option = document.createElement('option');
+            option.value = child.id;
+            option.textContent = child.name;
+            dropdown.appendChild(option);
+          });
+        } catch (error) {
+          console.error("Failed to load children:", error);
+        }
+      }
+
+      let lessonSuggestions = [];
+
+      async function loadLessonSuggestions() {
+        try {
+          const response = await fetch('http://localhost:5050/lessons');
+          const data = await response.json();
+          lessonSuggestions = data.lessons;
+        } catch (error) {
+          console.error("Failed to load lesson suggestions:", error);
+        }
+      }
+
+     function setupCustomAutocomplete() {
+      const input = document.getElementById('mastered-lessons');
+      const wrapper = document.createElement('div');
+      wrapper.style.position = 'relative';
+      input.parentNode.insertBefore(wrapper, input);
+      wrapper.appendChild(input);
+
+      const suggestionBox = document.createElement('div');
+      suggestionBox.className = 'autocomplete-suggestions';
+      suggestionBox.style.display = 'none';
+      wrapper.appendChild(suggestionBox);
+
+      let activeIndex = -1;
+
+      function showSuggestions() {
+        const value = input.value;
+        const parts = value.split(',');
+        const current = parts[parts.length - 1].trim().toLowerCase();
+
+        const matches = current
+          ? lessonSuggestions.filter(name => name.toLowerCase().includes(current))
+          : lessonSuggestions.slice();
+
+        const MAX_SUGGESTIONS = 10;
+        const limitedMatches = matches.slice(0, MAX_SUGGESTIONS);
+
+        suggestionBox.innerHTML = '';
+        activeIndex = -1;
+
+        limitedMatches.forEach((match, index) => {
+          const div = document.createElement('div');
+
+          // Highlight match
+          const regex = new RegExp(`(${current})`, 'i');
+          div.innerHTML = match.replace(regex, "<mark>$1</mark>");
+
+          div.addEventListener('click', () => {
+            parts[parts.length - 1] = ' ' + match;
+            input.value = parts.join(', ').replace(/^,/, '').trim();
+            suggestionBox.style.display = 'none';
+            input.focus();
+          });
+
+          suggestionBox.appendChild(div);
+        });
+
+        suggestionBox.style.display = limitedMatches.length ? 'block' : 'none';
+      }
+
+      input.addEventListener('input', showSuggestions);
+      input.addEventListener('focus', showSuggestions);
+
+      input.addEventListener('keydown', (e) => {
+        const items = suggestionBox.querySelectorAll('div');
+        if (!items.length || suggestionBox.style.display === 'none') return;
+
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          activeIndex = (activeIndex + 1) % items.length;
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          activeIndex = (activeIndex - 1 + items.length) % items.length;
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          if (activeIndex >= 0) {
+            items[activeIndex].click();
+          }
+        } else if (e.key === 'Escape') {
+          suggestionBox.style.display = 'none';
+        }
+
+        items.forEach((el, i) => {
+          el.style.backgroundColor = i === activeIndex ? '#e0e0e0' : '';
+        });
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!wrapper.contains(e.target)) {
+          suggestionBox.style.display = 'none';
+        }
+      });
+      
+    }
+      window.addEventListener('DOMContentLoaded', () => {
+    loadChildren();
+    loadLessonSuggestions().then(setupCustomAutocomplete);
+  });   
+
+
+   </script>
+
+
+  <script>
+  document.getElementById('lesson-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const childId = document.getElementById('child-id').value.trim();
+    const category = document.getElementById('category').value.trim();
+    const age = document.getElementById('child-age').value.trim();
+
+    const masteredInput = document.getElementById('mastered-lessons').value.trim();
+    const mastered = masteredInput
+      .split(',')
+      .map(l => l.trim())
+      .filter(l => l.length > 0); // ✅ turns string into list
+
+    if (!childId || !category || !age ) {
+      alert("Please fill in child, age and category fields.");
+      return;
+    }
+
+    const payload = {
+      child_id: childId,
+      category: category,
+      age: age,
+      mastered: mastered
+    };
+
+    console.log("Submitting payload:", payload);
+
+    try {
+      const res = await fetch('http://localhost:5050/recommend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      const result = document.getElementById('result');
+      result.style.display = 'block';
+
+      if (!res.ok) {
+        let suggestionsHTML = "";
+        if (data.suggestions) {
+          for (const [wrong, suggestion] of Object.entries(data.suggestions)) {
+            suggestionsHTML += `<li>${wrong} → <em>${suggestion}</em></li>`;
+          }
+        }
+        result.innerHTML = `
+          <strong>Error:</strong> ${data.error}<br>
+          <strong>Invalid Lessons:</strong> ${data.invalidLessons?.join(" , ") || "N/A"}<br>
+          ${suggestionsHTML ? `<ul>${suggestionsHTML}</ul>` : ""}
+        `;
+        return;
+      }
+
+      if (data.next_lesson) {
+        result.innerHTML = `
+          <strong>Recommended Lesson:</strong> ${data.next_lesson.Lesson} <br>
+          <strong>Area:</strong> ${data.next_lesson.Area} <br>
+          <strong>Description:</strong> ${data.next_lesson.Description}
+        `;
+      }
+
+      const statusResponse = await fetch(`http://localhost:5050/lessons/status/${childId}`);
+      const statusData = await statusResponse.json();
+
+      const masteredList = statusData.lesson_summary?.mastered || [];
+      const unmasteredList = statusData.lesson_summary?.unmastered || [];
+
+      const masteredUl = document.getElementById('mastered-ul');
+      const unmasteredUl = document.getElementById('unmastered-ul');
+
+      masteredUl.innerHTML = masteredList.map(l => `<li>${l.name} (${l.area})</li>`).join('');
+      unmasteredUl.innerHTML = unmasteredList.map(l => `<li>${l.name} (${l.area})</li>`).join('');
+
+    } catch (error) {
+      console.error('Error:', error);
+      alert("Could not connect to the server. Make sure it's running.");
+    }
+  });
+</script>
+
+
+
+</body>
+</html>
