@@ -168,7 +168,7 @@
   <script>
       async function loadChildren() {
         try {
-          const response = await fetch('http://localhost:5050/children');
+          const response = await fetch("https://affaaf.pythonanywhere.com/children");
           const data = await response.json();
           const dropdown = document.getElementById('child-id');
 
@@ -187,7 +187,7 @@
 
       async function loadLessonSuggestions() {
         try {
-          const response = await fetch('http://localhost:5050/lessons');
+          const response = await fetch('https://affaaf.pythonanywhere.com/lessons');
           const data = await response.json();
           lessonSuggestions = data.lessons;
         } catch (error) {
@@ -316,7 +316,7 @@
     console.log("Submitting payload:", payload);
 
     try {
-      const res = await fetch('http://localhost:5050/recommend', {
+      const res = await fetch('https://affaaf.pythonanywhere.com/recommend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -349,7 +349,7 @@
         `;
       }
 
-      const statusResponse = await fetch(`http://localhost:5050/lessons/status/${childId}`);
+      const statusResponse = await fetch(`https://affaaf.pythonanywhere.com/lessons/status/${childId}`);
       const statusData = await statusResponse.json();
 
       const masteredList = statusData.lesson_summary?.mastered || [];
