@@ -322,8 +322,8 @@
           });
 
           const result = await res.json();
-
-          if (res.ok && result.child) {
+          
+          if (res.ok && result.id) {
             // Add the new child to the dropdown
             const dropdown = document.getElementById("child-id");
             const option = document.createElement("option");
