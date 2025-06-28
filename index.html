@@ -119,12 +119,11 @@
         <select id="child-id" name="child_id" required>
           <option value="">--Choose a Child--</option>
            <option value="add-new">➕ Add New Child</option>
-
-            <div id="new-child-container" style="display:none; margin-top:10px;">
+        </select>
+        <div id="new-child-container" style="display:none; margin-top:10px;">
               <label for="newChildName">Enter New Child's Name:</label>
               <input type="text" id="newChildName" name="newChildName" placeholder="Child's name" />
-            </div>
-        </select>
+        </div>
 
         <label for="child-age">Child's Current Age (in years):</label>
         <input type="number" id="child-age" name="child_age" min="2" max="6" step="0.1" required>
