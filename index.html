@@ -306,11 +306,16 @@
 
       let childId = document.getElementById('child-id').value.trim();
       const newChildName = document.getElementById('newChildName').value.trim();
-      const newChildAge = document.getElementById('child_age').value.trim();
+      const newChildAge = document.getElementById('child-age').value.trim();
 
       if (childId === "add-new") {
         if (!newChildName) {
           alert("Please enter a name for the new child.");
+          return;
+        }
+
+        if (!newChildAge) {
+          alert("Please enter the child's age.");
           return;
         }
 
