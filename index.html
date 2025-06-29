@@ -77,7 +77,7 @@
       max-width: 100%;
       border-radius: 12px;
     }
-      
+
     .autocomplete-suggestions {
       position: absolute;
       background: #ffffff;
@@ -97,15 +97,13 @@
     .autocomplete-suggestions div:hover {
       background-color: #f0f0f0;
     }
-
   </style>
 </head>
 <body>
-
   <h1>Montessori Lessons Recommender</h1>
   <div id="intro" style="margin: 20px; padding: 10px; background-color: #e6f7e6;">
     <p>
-      Welcome to the Montessori Lesson Recommender! Select a child from the list, enter child's current age, choose an area of learning,
+      Welcome to the Montessori Lesson Recommender! Select a child from the list, enter the child's current age, choose an area of learning,
       and enter any lessons they have already mastered. The system will suggest the next appropriate lesson 
       based on their age and learning history.
     </p>
@@ -118,11 +116,12 @@
         <label for="child-id">Select Child:</label>
         <select id="child-id" name="child_id" required>
           <option value="">--Choose a Child--</option>
-           <option value="add-new">➕ Add New Child</option>
+          <option value="add-new">➕ Add New Child</option>
         </select>
+
         <div id="new-child-container" style="display:none; margin-top:10px;">
-              <label for="newChildName">Enter New Child's Name:</label>
-              <input type="text" id="newChildName" name="newChildName" placeholder="Child's name" />
+          <label for="newChildName">Enter New Child's Name:</label>
+          <input type="text" id="newChildName" name="newChildName" placeholder="Child's name" />
         </div>
 
         <label for="child-age">Child's Current Age (in years):</label>
@@ -130,9 +129,6 @@
 
         <label for="mastered-lessons">Mastered Lessons (comma-separated):</label>
         <input type="text" id="mastered-lessons" name="mastered_lessons" autocomplete="off" />
-
-        <!-- <datalist id="lesson-suggestions"></datalist> -->
-
 
         <label for="category">Select Lesson Category:</label>
         <select id="category" name="category" required>
@@ -145,22 +141,21 @@
         </select>
 
         <button type="submit">Submit</button>
-        
       </form>
 
       <div id="result" class="result" style="display: none;"></div>
       <div id="lesson-breakdown" class="result" style="display: none;"></div>
-        <div id="lesson-status" style="margin-top: 20px; padding: 20px;">
-          <div id="mastered-list">
-            <h3>Mastered Lessons:</h3>
-            <ul id="mastered-ul"></ul>
-          </div>
-
-          <div id="unmastered-list" style="margin-top: 10px;">
-            <h3>Unmastered Lessons:</h3>
-            <ul id="unmastered-ul"></ul>
-          </div>
+      <div id="lesson-status" style="margin-top: 20px; padding: 20px;">
+        <div id="mastered-list">
+          <h3>Mastered Lessons:</h3>
+          <ul id="mastered-ul"></ul>
         </div>
+
+        <div id="unmastered-list" style="margin-top: 10px;">
+          <h3>Unmastered Lessons:</h3>
+          <ul id="unmastered-ul"></ul>
+        </div>
+      </div>
     </div>
 
     <!-- Right: Flowchart -->
@@ -171,36 +166,38 @@
   </div>
 
   <script>
-      async function loadChildren() {
-        try {
-          const response = await fetch("https://affaaf.pythonanywhere.com/children");
-          const data = await response.json();
-          const dropdown = document.getElementById('child-id');
+    //const baseURL = "http://localhost:5050";
+      const baseURL = "https://affaaf.pythonanywhere.com";
 
-          data.children.forEach(child => {
-            const option = document.createElement('option');
-            option.value = child.id;
-            option.textContent = child.name;
-            dropdown.appendChild(option);
-          });
-        } catch (error) {
-          console.error("Failed to load children:", error);
-        }
+    async function loadChildren() {
+      try {
+        const response = await fetch(baseURL + '/children');
+        const data = await response.json();
+        const dropdown = document.getElementById('child-id');
+
+        data.children.forEach(child => {
+          const option = document.createElement('option');
+          option.value = child.id;
+          option.textContent = child.name;
+          dropdown.appendChild(option);
+        });
+      } catch (error) {
+        console.error("Failed to load children:", error);
       }
+    }
 
-      let lessonSuggestions = [];
-
-      async function loadLessonSuggestions() {
-        try {
-          const response = await fetch('https://affaaf.pythonanywhere.com/lessons');
-          const data = await response.json();
-          lessonSuggestions = data.lessons.map(l => ({ name: l.name }));
-        } catch (error) {
-          console.error("Failed to load lesson suggestions:", error);
-        }
+    async function loadLessonSuggestions() {
+      try {
+        const response = await fetch(baseURL + '/lessons');
+        const data = await response.json();
+        return data.lessons.map(l => ({ name: l.name }));
+      } catch (error) {
+        console.error("Failed to load lesson suggestions:", error);
+        return [];
       }
+    }
 
-     function setupCustomAutocomplete() {
+    function setupCustomAutocomplete(lessonSuggestions) {
       const input = document.getElementById('mastered-lessons');
       const wrapper = document.createElement('div');
       wrapper.style.position = 'relative';
@@ -220,31 +217,23 @@
         const current = parts[parts.length - 1].trim().toLowerCase();
 
         const matches = current
-        ? lessonSuggestions.filter(obj => obj.name.toLowerCase().includes(current))
-        : lessonSuggestions.slice();
+          ? lessonSuggestions.filter(obj => obj.name.toLowerCase().includes(current))
+          : lessonSuggestions.slice();
 
-
-        const MAX_SUGGESTIONS = 10;
-        const limitedMatches = matches.slice(0, MAX_SUGGESTIONS);
-
+        const limitedMatches = matches.slice(0, 10);
         suggestionBox.innerHTML = '';
         activeIndex = -1;
 
         limitedMatches.forEach((match, index) => {
           const div = document.createElement('div');
-
-          // Highlight match
           const regex = new RegExp(`(${current})`, 'i');
           div.innerHTML = match.name.replace(regex, "<mark>$1</mark>");
-
           div.addEventListener('click', () => {
             parts[parts.length - 1] = ' ' + match.name;
-
             input.value = parts.join(', ').replace(/^,/, '').trim();
             suggestionBox.style.display = 'none';
             input.focus();
           });
-
           suggestionBox.appendChild(div);
         });
 
@@ -266,9 +255,7 @@
           activeIndex = (activeIndex - 1 + items.length) % items.length;
         } else if (e.key === 'Enter') {
           e.preventDefault();
-          if (activeIndex >= 0) {
-            items[activeIndex].click();
-          }
+          if (activeIndex >= 0) items[activeIndex].click();
         } else if (e.key === 'Escape') {
           suggestionBox.style.display = 'none';
         }
@@ -283,29 +270,40 @@
           suggestionBox.style.display = 'none';
         }
       });
-      
     }
-      window.addEventListener('DOMContentLoaded', () => {
-        loadChildren();
-        loadLessonSuggestions().then(setupCustomAutocomplete);
-        const childDropdown = document.getElementById("child-id");
-        childDropdown.addEventListener("change", function () {
-          const newChildContainer = document.getElementById("new-child-container");
-          newChildContainer.style.display = this.value === "add-new" ? "block" : "none";
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      loadChildren();
+      const lessonSuggestions = await loadLessonSuggestions();
+      setupCustomAutocomplete(lessonSuggestions);
+
+      const childDropdown = document.getElementById("child-id");
+      childDropdown.addEventListener("change", function () {
+        document.getElementById("new-child-container").style.display =
+          this.value === "add-new" ? "block" : "none";
+      });
     });
+  </script>
 
-  });   
-
-
-   </script>
-
-
-  <script>
+   <script>
+ 
+    function formatName(name) {
+          return name
+            .toLowerCase()
+            .split(' ')
+            .filter(word => word.trim() !== '')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+        }   
+       
   document.getElementById('lesson-form').addEventListener('submit', async function (e) {
     e.preventDefault();
 
     let childId = document.getElementById('child-id').value.trim();
-    const newChildName = document.getElementById('newChildName').value.trim();
+
+    const rawName = document.getElementById('newChildName').value.trim();
+      const newChildName = formatName(rawName);
+
     const newChildAge = document.getElementById('child-age').value.trim();
 
     if (childId === "add-new") {
@@ -320,7 +318,7 @@
       }
 
       try {
-        const res = await fetch('https://affaaf.pythonanywhere.com/children', {
+        const res = await fetch(baseURL+'/children', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: newChildName, childAge: newChildAge })
@@ -382,7 +380,7 @@
     console.log("Submitting payload:", payload);
 
     try {
-      const res = await fetch('https://affaaf.pythonanywhere.com/recommend', {
+      const res = await fetch(baseURL+'/recommend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -415,7 +413,8 @@
         `;
       }
 
-      const statusResponse = await fetch(`https://affaaf.pythonanywhere.com/lessons/status/${childId}`);
+      const statusResponse = await fetch(`${baseURL}/lessons/status/${childId}`);
+
       const statusData = await statusResponse.json();
 
       const masteredList = statusData.lesson_summary?.mastered || [];
@@ -427,7 +426,9 @@
       masteredUl.innerHTML = masteredList.map(l => `<li>${l.name} (${l.area})</li>`).join('');
       unmasteredUl.innerHTML = unmasteredList.map(l => `<li>${l.name} (${l.area})</li>`).join('');
 
-    } catch (error) {
+    } 
+        
+        catch (error) {
       console.error('Error:', error);
       alert("Could not connect to the server. Make sure it's running.");
     }
@@ -435,7 +436,9 @@
 </script>
 
 
-
-
 </body>
 </html>
+
+
+
+
