@@ -328,6 +328,8 @@
 
         const result = await res.json();
         console.log("Json returned from adding new child: ", result);
+        console.log("res.ok....", res.ok)
+        console.log("child name is....", result.child)
 
         if (res.ok && result.child) {
           const childName = result.child.name;
