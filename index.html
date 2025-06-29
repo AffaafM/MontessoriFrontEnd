@@ -355,6 +355,12 @@ document.getElementById('lesson-form').addEventListener('submit', async function
       const result = await res.json();
 
       if (res.ok && result.child.name) {
+        const childName = result.child.name; 
+        if (childName.toLowerCase().includes("already exists")) {
+            alert(`${childName}. Please enter a different name.`);
+            document.getElementById("newChildName").value = '';
+            return;
+        }
         const dropdown = document.getElementById("child-id");
         const option = document.createElement("option");
         option.value = result.child.id;
