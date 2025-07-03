@@ -400,7 +400,7 @@ document.getElementById('lesson-form').addEventListener('submit', async function
     age: age,
     mastered: mastered
   };
-
+  console.log("payload", payload);
   try {
     const res = await fetch(baseURL + '/recommend', {
       method: 'POST',
@@ -411,7 +411,7 @@ document.getElementById('lesson-form').addEventListener('submit', async function
     const data = await res.json();
     const result = document.getElementById('result');
     result.style.display = 'block';
-
+    console.log("Suggestion is", data.suggestions);
     if (!res.ok) {
       let suggestionsHTML = "";
       if (data.suggestions) {
